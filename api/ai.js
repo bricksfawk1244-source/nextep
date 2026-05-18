@@ -45,8 +45,10 @@ console.log(data);
       result = "에러: " + data.error.message;
     }
 
-    res.status(200).json({ result });
-
+    res.status(200).json({
+result,
+      raw: data
+    });
   } catch (error) {
     res.status(500).json({ result: "서버 오류 발생" });
   }
