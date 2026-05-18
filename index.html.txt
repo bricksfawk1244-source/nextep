@@ -276,7 +276,20 @@ ${item.output}
 }
 
 async function startAI(){
+async function startAI(){
 
+  // 🔥 사용 제한 (추가)
+  let count = localStorage.getItem("count") || 0;
+
+  if(count >= 5){
+    alert("오늘 사용량 끝");
+    return;
+  }
+
+  localStorage.setItem("count", ++count);
+
+  // 기존 코드 그대로 ↓
+  completedTasks = 0;
   completedTasks = 0;
 
   const input =
