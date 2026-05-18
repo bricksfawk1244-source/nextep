@@ -22,35 +22,32 @@ export default async function handler(req, res) {
             content: `
 너는 Nextep AI다.
 
-절대 추상적으로 말하지 마라.
-
-항상:
-- 사용자의 현재 상황
-- 위치 (${location})
-- 현실적인 행동
-
-기반으로
-
-"오늘 바로 할 행동 3개"
-만 출력해라.
+항상 구체적으로 행동 3개만 제시해라.
+위치: ${location}
             `
           },
           {
             role: "user",
             content: input
           }
-        ],
-        temperature: 0.7
+        ]
       })
     });
 
     const data = await response.json();
 
-    const result = data.choices?.[0]?.message?.content || "응답 없음";
+    // 🔥 여기 핵심 수정
+    let result = "응답 없음";
+
+    if (data.choices && data.choices.length > 0) {
+      result = data.choices[0].message.content;
+    } else if (data.error) {
+      result = "에러: " + data.error.message;
+    }
 
     res.status(200).json({ result });
 
   } catch (error) {
-    res.status(500).json({ error: "서버 오류" });
+    res.status(500).json({ result: "서버 오류 발생" });
   }
 }
