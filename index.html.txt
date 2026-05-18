@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<title>Nextep</title>
+
+<style>
+body{
+  background:#0f0f0f;
+  color:white;
+  font-family:sans-serif;
+  margin:0;
+  padding:20px;
+}
+
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:20px;
+}
+
+.logo{
+  font-size:28px;
+  font-weight:bold;
+}
+
+.historyBtn{
+  background:#1f1f1f;
+  border:none;
+  color:white;
+  padding:10px 14px;
+  border-radius:12px;
+  cursor:pointer;
+}
+
+textarea{
+  width:100%;
+  height:120px;
+  background:#1a1a1a;
+  border:none;
+  color:white;
+  border-radius:16px;
+  padding:16px;
+  font-size:16px;
+  box-sizing:border-box;
+}
+
+.runBtn{
+  width:100%;
+  margin-top:14px;
+  background:white;
+  color:black;
+  border:none;
+  padding:16px;
+  font-size:17px;
+  border-radius:16px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+.result{
+  margin-top:24px;
+}
+
+.card{
+  background:#171717;
+  padding:20px;
+  border-radius:18px;
+  margin-bottom:16px;
+  line-height:1.7;
+}
+
+.task{
+  margin-top:16px;
+  background:#202020;
+  border-radius:14px;
+  padding:14px;
+}
+
+.task button{
+  margin-top:10px;
+  width:100%;
+  border:none;
+  background:#fff;
+  color:black;
+  padding:12px;
+  border-radius:10px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.progressWrap{
+  margin-top:20px;
+}
+
+.progressBar{
+  width:100%;
+  height:18px;
+  background:#2a2a2a;
+  border-radius:999px;
+  overflow:hidden;
+}
+
+.progress{
+  height:100%;
+  width:0%;
+  background:white;
+  transition:0.3s;
+}
+
+.historyPanel{
+  position:fixed;
+  top:0;
+  right:-100%;
+  width:85%;
+  height:100%;
+  background:#111;
+  z-index:999;
+  transition:0.3s;
+  overflow:auto;
+  padding:20px;
+  box-sizing:border-box;
+}
+
+.closeBtn{
+  background:#222;
+  border:none;
+  color:white;
+  padding:8px 12px;
+  border-radius:10px;
+  cursor:pointer;
+  float:right;
+}
+
+.historyItem{
+  background:#1d1d1d;
+  padding:14px;
+  border-radius:14px;
+  margin-bottom:12px;
+  cursor:pointer;
+}
+
+.savedChat{
+  margin-top:20px;
+  background:#191919;
+  padding:16px;
+  border-radius:16px;
+  white-space:pre-wrap;
+  line-height:1.7;
+}
+</style>
+</head>
+
+<body>
+
+<div class="topbar">
+  <div class="logo">Nextep</div>
+
+  <button class="historyBtn" onclick="toggleHistory()">
+    📁
+  </button>
+</div>
+
+<textarea
+  id="ideaInput"
+  placeholder="예: 쇼츠 조회수 안 나옴 / 서비스 수익화 고민 / 사용자 늘리고 싶음"
+></textarea>
+
+<button class="runBtn" onclick="startAI()">
+  Next Step 생성
+</button>
+
+<div class="result" id="result"></div>
+
+<div class="historyPanel" id="historyPanel">
+  <button class="closeBtn" onclick="toggleHistory()">X</button>
+  <h2>저장된 대화</h2>
+  <div id="historyList"></div>
+
+  <div id="savedChatView"></div>
+</div>
+
+<script>
+
+const API_URL = "/api/ai";
+
+let completedTasks = 0;
+
+function toggleHistory(){
+  const panel = document.getElementById("historyPanel");
+
+  if(panel.style.right === "0px"){
+    panel.style.right = "-100%";
+  }else{
+    panel.style.right = "0";
+    loadHistory();
+  }
+}
+
+function updateProgress(){
+  completedTasks++;
+
+  let percent = Math.min((completedTasks / 3) * 100, 100);
+
+  document.getElementById("progress").style.width = percent + "%";
+  document.getElementById("percentText").innerText =
+    Math.floor(percent) + "% 완료";
+
+  if(percent >= 100){
+    alert("오늘의 Next Step 완료");
+  }
+}
+
+function saveChat(userInput, aiText){
+  let history =
+    JSON.parse(localStorage.getItem("nextepHistory")) || [];
+
+  history.unshift({
+    date:new Date().toLocaleString(),
+    input:userInput,
+    output:aiText
+  });
+
+  localStorage.setItem(
+    "nextepHistory",
+    JSON.stringify(history)
+  );
+}
+
+function loadHistory(){
+
+  let history =
+    JSON.parse(localStorage.getItem("nextepHistory")) || [];
+
+  let html = "";
+
+  history.forEach((item,index)=>{
+
+    html += `
+      <div class="historyItem"
+        onclick="openHistory(${index})">
+
+        <strong>${item.input}</strong><br>
+        <small>${item.date}</small>
+
+      </div>
+    `;
+  });
+
+  document.getElementById("historyList").innerHTML = html;
+}
+
+function openHistory(index){
+
+  let history =
+    JSON.parse(localStorage.getItem("nextepHistory")) || [];
+
+  const item = history[index];
+
+  document.getElementById("savedChatView").innerHTML = `
+    <div class="savedChat">
+
+사용자:
+${item.input}
+
+-----------------------
+
+Nextep:
+${item.output}
+
+    </div>
+  `;
+}
+
+async function startAI(){
+
+  completedTasks = 0;
+
+  const input =
+    document.getElementById("ideaInput").value;
+
+  const result =
+    document.getElementById("result");
+
+  result.innerHTML = "🧠 상황 분석 중...";
+
+  navigator.geolocation.getCurrentPosition(async(position)=>{
+
+    const lat = position.coords.latitude;
+    const lon = position.coords.longitude;
+
+    try{
+
+      const response = await fetch(API_URL, {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          input,
+          location:`대구 근처 (위도:${lat}, 경도:${lon})`
+        })
+      });
+
+      if(!response.ok){
+        throw new Error("API 응답 오류");
+      }
+
+      const data = await response.json();
+
+      if(!data.result){
+        throw new Error("응답 데이터 없음");
+      }
+
+      const aiText = data.result;
+
+      saveChat(input, aiText);
+
+      result.innerHTML = `
+
+        <div class="card">
+
+${aiText}
+
+          <div class="progressWrap">
+
+            <h3 id="percentText">
+              0% 완료
+            </h3>
+
+            <div class="progressBar">
+              <div
+                class="progress"
+                id="progress">
+              </div>
+            </div>
+
+          </div>
+
+          <div class="task">
+            <strong>STEP 1 완료했으면 누르기</strong>
+            <button onclick="updateProgress()">
+              완료
+            </button>
+          </div>
+
+          <div class="task">
+            <strong>STEP 2 완료했으면 누르기</strong>
+            <button onclick="updateProgress()">
+              완료
+            </button>
+          </div>
+
+          <div class="task">
+            <strong>STEP 3 완료했으면 누르기</strong>
+            <button onclick="updateProgress()">
+              완료
+            </button>
+          </div>
+
+        </div>
+
+      `;
+
+    }catch(error){
+
+      console.log(error);
+
+      result.innerHTML =
+        "❌ 서버 연결 안됨 (/api/ai 확인해라)";
+
+    }
+
+  },()=>{
+
+    result.innerHTML =
+      "위치 권한 허용 필요";
+
+  });
+}
+
+</script>
+
+</body>
+</html>
