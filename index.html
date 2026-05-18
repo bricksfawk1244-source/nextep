@@ -283,7 +283,7 @@ async function startAI(){
       });
 
       const data = await response.json();
-      const aiText = data.result;
+      const aiText = data.result || JSON.stringify(data.raw);
 
       saveChat(input, aiText);
 
