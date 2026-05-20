@@ -107,11 +107,7 @@
       messages.scrollTop = messages.scrollHeight;
     }
 
-    function fakeAI(text) {
-      return "Nextep 답변: " + text;
-    }
-
-    function sendMessage() {
+    async function sendMessage() {
       const text = input.value.trim();
       if (!text) return;
 
@@ -120,10 +116,24 @@
 
       addMessage("생각 중...", "ai");
 
-      setTimeout(() => {
+      try {
+        const res = await fetch("https://nextep-inky.vercel.app/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ message: text })
+        });
+
+        const data = await res.json();
+
         messages.lastChild.remove();
-        addMessage(fakeAI(text), "ai");
-      }, 700);
+        addMessage(data.reply, "ai");
+
+      } catch (err) {
+        messages.lastChild.remove();
+        addMessage("서버 연결 실패", "ai");
+      }
     }
 
     input.addEventListener("keypress", function(e) {
