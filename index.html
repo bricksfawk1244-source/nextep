@@ -107,9 +107,30 @@
       messages.scrollTop = messages.scrollHeight;
     }
 
+    // 🔥 무료 횟수 제한
+    let limit = 5;
+
+    function checkLimit() {
+      let count = localStorage.getItem("count") || 0;
+
+      if (count >= limit) {
+        return false;
+      }
+
+      localStorage.setItem("count", Number(count) + 1);
+      return true;
+    }
+
+    // 🔥 메인 함수 (완전 최신 버전)
     async function sendMessage() {
       const text = input.value.trim();
       if (!text) return;
+
+      // 제한 체크
+      if (!checkLimit()) {
+        addMessage("무료 사용 횟수를 초과했습니다.", "ai");
+        return;
+      }
 
       addMessage(text, "user");
       input.value = "";
