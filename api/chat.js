@@ -1,33 +1,173 @@
-export default async function handler(req, res) {
-  try {
-    const { message } = req.body;
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Nextep</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: "너는 Nextep이라는 생산성 코치 AI야. 사용자의 문제를 해결해주는 실용적인 답변만 해." },
-          { role: "user", content: message }
-        ]
-      })
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f7f7f7;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    .chat-box {
+      background: white;
+      border-radius: 12px;
+      padding: 15px;
+      height: 70vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .msg {
+      padding: 10px;
+      border-radius: 10px;
+      max-width: 80%;
+      white-space: pre-wrap;
+    }
+
+    .user {
+      align-self: flex-end;
+      background: #e5e5e5;
+    }
+
+    .ai {
+      align-self: flex-start;
+      background: #111;
+      color: white;
+    }
+
+    .input-box {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    input {
+      flex: 1;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      padding: 12px 16px;
+      border: none;
+      border-radius: 8px;
+      background: black;
+      color: white;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Nextep</h1>
+
+    <div class="chat-box">
+      <div id="messages" class="messages"></div>
+
+      <div class="input-box">
+        <input id="input" placeholder="메시지를 입력하세요">
+        <button onclick="sendMessage()">전송</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const messages = document.getElementById("messages");
+    const input = document.getElementById("input");
+
+    // 🔥 Markdown → HTML 변환
+    function formatText(text) {
+      return text
+        .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
+        .replace(/\n/g, "<br>");
+    }
+
+    // 🔥 메시지 출력
+    function addMessage(text, type) {
+      const div = document.createElement("div");
+      div.className = "msg " + type;
+      div.innerHTML = formatText(text);
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    // 🔥 무료 횟수 제한
+    let limit = 5;
+
+    function checkLimit() {
+      let count = localStorage.getItem("count") || 0;
+
+      if (count >= limit) {
+        return false;
+      }
+
+      localStorage.setItem("count", Number(count) + 1);
+      return true;
+    }
+
+    // 🔥 메인 채팅 함수
+    async function sendMessage() {
+      const text = input.value.trim();
+      if (!text) return;
+
+      if (!checkLimit()) {
+        addMessage("**무료 사용 횟수를 초과했습니다.**", "ai");
+        return;
+      }
+
+      addMessage(text, "user");
+      input.value = "";
+
+      addMessage("생각 중...", "ai");
+
+      try {
+        const res = await fetch("https://nextep-inky.vercel.app/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ message: text })
+        });
+
+        const data = await res.json();
+
+        messages.lastChild.remove();
+        addMessage(data.reply, "ai");
+
+      } catch (err) {
+        messages.lastChild.remove();
+        addMessage("**서버 연결 실패**", "ai");
+      }
+    }
+
+    // 엔터 입력
+    input.addEventListener("keypress", function(e) {
+      if (e.key === "Enter") sendMessage();
     });
-
-    const data = await response.json();
-
-   console.log(data); // 🔥 이거 추가
-
-return res.status(200).json({
-  reply: data.choices?.[0]?.message?.content || JSON.stringify(data)
-});
-
-  } catch (err) {
-    return res.status(500).json({
-      reply: "서버 에러"
-    });
-  }
-}
+  </script>
+</body>
+</html>
