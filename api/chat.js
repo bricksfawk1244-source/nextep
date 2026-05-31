@@ -1,9 +1,10 @@
 export default async function handler(req, res) {
   try {
-    const userMessage = req.body?.message;
+    const body = req.body || {};
+    const userMessage = body.message;
 
     if (!userMessage) {
-      return res.status(400).json({ error: "No message" });
+      return res.status(400).json({ error: "No message received" });
     }
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -33,7 +34,7 @@ export default async function handler(req, res) {
 
     if (!reply) {
       return res.status(500).json({
-        error: "No reply from OpenAI",
+        error: "OpenAI response empty",
         raw: data
       });
     }
