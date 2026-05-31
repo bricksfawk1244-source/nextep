@@ -1,20 +1,20 @@
 export default async function handler(req, res) {
   try {
-    console.log("METHOD:", req.method);
-    console.log("BODY RAW:", req.body);
-
     let body = req.body;
 
+    // 🔥 아임웹 대비 필수
     if (typeof body === "string") {
-      body = JSON.parse(body);
+      body = JSON.parse(body || "{}");
     }
 
-    const userMessage = body?.message;
+    if (!body) body = {};
+
+    const userMessage = body.message || body.text || body;
 
     if (!userMessage) {
       return res.status(400).json({
         error: "NO_MESSAGE",
-        receivedBody: req.body
+        received: req.body
       });
     }
 
@@ -27,17 +27,19 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [
-          { role: "user", content: userMessage }
+          {
+            role: "user",
+            content: userMessage
+          }
         ]
       })
     });
 
     const data = await response.json();
 
-    return res.status(200).json({
-      debug: true,
-      openai: data
-    });
+    const reply = data?.choices?.[0]?.message?.content;
+
+    return res.status(200).json({ reply });
 
   } catch (err) {
     return res.status(500).json({
