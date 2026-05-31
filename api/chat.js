@@ -1,3 +1,10 @@
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
+
 export default async function handler(req, res) {
   try {
     const userMessage = req.body?.message;
@@ -17,14 +24,13 @@ export default async function handler(req, res) {
         messages: [
           {
             role: "system",
-            content: `너는 Nextep AI다. 아이디어를 구조화해서 기획서처럼 답해라.
-
-1. 아이디어 요약
-2. 문제 정의
-3. 타겟 사용자
-4. 핵심 기능 3~5개
-5. MVP 방향
-6. 개선 질문 3개`
+            content: `너는 Nextep AI다. 아이디어를 구조화해라:
+1. 요약
+2. 문제
+3. 타겟
+4. 기능
+5. MVP
+6. 질문`
           },
           {
             role: "user",
@@ -35,21 +41,19 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-
     const reply = data?.choices?.[0]?.message?.content;
 
-    if (!reply) {
-      return res.status(500).json({
-        error: "No reply from OpenAI",
-        raw: data
-      });
-    }
+    // 🔥 Supabase 저장
+    await supabase.from("ideas").insert([
+      {
+        message: userMessage,
+        reply: reply
+      }
+    ]);
 
     res.status(200).json({ reply });
 
   } catch (err) {
-    res.status(500).json({
-      error: err.message
-    });
+    res.status(500).json({ error: err.message });
   }
 }
