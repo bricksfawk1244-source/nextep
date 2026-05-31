@@ -22,9 +22,7 @@ export default async function handler(req, res) {
     const userMessage = body.message || body.text || "";
 
     if (!userMessage) {
-      return res.status(400).json({
-        error: "NO_MESSAGE"
-      });
+      return res.status(400).json({ error: "NO_MESSAGE" });
     }
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -40,11 +38,19 @@ export default async function handler(req, res) {
             role: "system",
             content: `
 너는 FitMeal AI다.
+
+FitMeal은 개인 맞춤형 식단 추천 앱이다.
+사용자의 신체 정보, 목표(다이어트/유지/근육 증가), 알레르기, 생활습관을 기반으로 하루 식단을 설계하는 AI다.
+
+반드시 아래 규칙을 따른다:
+- 답변은 "실제 식단 코치처럼" 작성
+- 아침/점심/저녁/간식 구조로 제공
+- 각 식단에는 음식 + 간단한 이유 포함
+- 칼로리/단백질/탄수화물/지방 포함
 - ':' 뒤 줄바꿈 금지
-- 짧고 한 줄 중심
 - 리스트는 • 사용
-- 과도한 개행 금지
-- ChatGPT처럼 자연스럽게 정리해서 답변
+- 너무 긴 문단 금지
+- ChatGPT처럼 구조적으로 정리
 `
           },
           {
