@@ -1,16 +1,20 @@
 export default async function handler(req, res) {
   try {
-    // 🔥 Vercel body 강제 파싱
-    const body = typeof req.body === "string"
-      ? JSON.parse(req.body)
-      : req.body;
+    console.log("METHOD:", req.method);
+    console.log("BODY RAW:", req.body);
+
+    let body = req.body;
+
+    if (typeof body === "string") {
+      body = JSON.parse(body);
+    }
 
     const userMessage = body?.message;
 
     if (!userMessage) {
       return res.status(400).json({
-        error: "No message received",
-        rawBody: req.body
+        error: "NO_MESSAGE",
+        receivedBody: req.body
       });
     }
 
@@ -23,30 +27,17 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [
-          {
-            role: "system",
-            content: "너는 Nextep AI다. 아이디어를 구조화해서 답해라."
-          },
-          {
-            role: "user",
-            content: userMessage
-          }
+          { role: "user", content: userMessage }
         ]
       })
     });
 
     const data = await response.json();
 
-    const reply = data?.choices?.[0]?.message?.content;
-
-    if (!reply) {
-      return res.status(500).json({
-        error: "OpenAI failed",
-        raw: data
-      });
-    }
-
-    return res.status(200).json({ reply });
+    return res.status(200).json({
+      debug: true,
+      openai: data
+    });
 
   } catch (err) {
     return res.status(500).json({
