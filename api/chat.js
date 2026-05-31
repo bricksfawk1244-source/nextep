@@ -7,10 +7,12 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
   try {
+    console.log("REQ BODY:", req.body);
+
     const userMessage = req.body?.message;
 
     if (!userMessage) {
-      return res.status(400).json({ error: "No message" });
+      return res.status(400).json({ error: "No message received" });
     }
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -24,13 +26,7 @@ export default async function handler(req, res) {
         messages: [
           {
             role: "system",
-            content: `너는 Nextep AI다. 아이디어를 구조화해라:
-1. 요약
-2. 문제
-3. 타겟
-4. 기능
-5. MVP
-6. 질문`
+            content: "너는 Nextep AI다. 아이디어를 구조화해서 답해라."
           },
           {
             role: "user",
@@ -41,9 +37,19 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
+
+    console.log("OPENAI RESPONSE:", data);
+
     const reply = data?.choices?.[0]?.message?.content;
 
-    // 🔥 Supabase 저장
+    if (!reply) {
+      return res.status(500).json({
+        error: "No reply from OpenAI",
+        raw: data
+      });
+    }
+
+    // Supabase 저장 (에러 무시)
     await supabase.from("ideas").insert([
       {
         message: userMessage,
@@ -51,9 +57,12 @@ export default async function handler(req, res) {
       }
     ]);
 
-    res.status(200).json({ reply });
+    return res.status(200).json({ reply });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.log("SERVER ERROR:", err);
+    return res.status(500).json({
+      error: err.message
+    });
   }
 }
