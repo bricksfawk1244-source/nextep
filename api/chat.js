@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-  // 🔥 CORS (아임웹 필수 대응)
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -9,7 +8,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 🔥 body 안전 파싱 (아임웹 대비)
     let body = req.body;
 
     if (!body) body = {};
@@ -21,16 +19,14 @@ export default async function handler(req, res) {
       }
     }
 
-    const userMessage = body.message || body.text || body || "";
+    const userMessage = body.message || body.text || "";
 
-    if (!userMessage || typeof userMessage !== "string") {
+    if (!userMessage) {
       return res.status(400).json({
-        error: "NO_MESSAGE",
-        received: req.body
+        error: "NO_MESSAGE"
       });
     }
 
-    // 🔥 OpenAI 호출
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -42,7 +38,14 @@ export default async function handler(req, res) {
         messages: [
           {
             role: "system",
-            content: "너는 Nextep AI다. 아이디어를 구조화해서 현실적인 MVP 형태로 정리해라."
+            content: `
+너는 FitMeal AI다.
+- ':' 뒤 줄바꿈 금지
+- 짧고 한 줄 중심
+- 리스트는 • 사용
+- 과도한 개행 금지
+- ChatGPT처럼 자연스럽게 정리해서 답변
+`
           },
           {
             role: "user",
@@ -54,24 +57,20 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    // 🔥 안전 체크
     const reply = data?.choices?.[0]?.message?.content;
 
     if (!reply) {
       return res.status(500).json({
-        error: "OPENAI_FAILED",
+        error: "OPENAI_ERROR",
         raw: data
       });
     }
 
-    return res.status(200).json({
-      reply
-    });
+    return res.status(200).json({ reply });
 
   } catch (err) {
     return res.status(500).json({
-      error: "SERVER_ERROR",
-      message: err.message
+      error: err.message
     });
   }
 }
