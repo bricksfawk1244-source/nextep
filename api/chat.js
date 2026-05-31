@@ -1,10 +1,17 @@
 export default async function handler(req, res) {
   try {
-    const body = req.body || {};
-    const userMessage = body.message;
+    // 🔥 Vercel body 강제 파싱
+    const body = typeof req.body === "string"
+      ? JSON.parse(req.body)
+      : req.body;
+
+    const userMessage = body?.message;
 
     if (!userMessage) {
-      return res.status(400).json({ error: "No message received" });
+      return res.status(400).json({
+        error: "No message received",
+        rawBody: req.body
+      });
     }
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -34,7 +41,7 @@ export default async function handler(req, res) {
 
     if (!reply) {
       return res.status(500).json({
-        error: "OpenAI response empty",
+        error: "OpenAI failed",
         raw: data
       });
     }
